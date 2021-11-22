@@ -3,36 +3,46 @@ package rest
 import (
 	"context"
 	"net/http"
-	"strings"
 	"wallet/internal"
 )
 
-type userID string
+type ctxKey int
+
+const (
+	_ ctxKey = iota
+	userIDCtxKey
+)
 
 func authMiddleware(auth *internal.AuthToken) func(http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, req *http.Request) {
-			header := req.Header.Get("Authorization")
-			if header == "" {
+			authHead := req.Header.Get("Authorization")
+			if authHead == "" {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
 
-			bearer := strings.Split(header, " ")
-			if len(bearer) < 2 || bearer[1] == "" {
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-
-			claims, err := auth.ParseToken(bearer[1])
+			// without Bearer as test docs have written
+			claims, err := auth.ParseToken(authHead)
 			if err != nil {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
 
-			ctx := context.WithValue(req.Context(), new(userID), claims.UserID)
-
+			ctx := setUserIDInCtx(req.Context(), claims.UserID)
 			next.ServeHTTP(w, req.WithContext(ctx))
 		}
 	}
+}
+
+func setUserIDInCtx(parentCtx context.Context, userID string) context.Context {
+	return context.WithValue(parentCtx, userIDCtxKey, userID)
+}
+
+func getUserIDInCtx(ctx context.Context) (string, error) {
+	userID, ok := ctx.Value(userIDCtxKey).(string)
+	if !ok || userID == "" {
+		return "", internal.ErrDataNotFound
+	}
+	return userID, nil
 }

@@ -2,7 +2,6 @@ package internal
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -39,7 +38,6 @@ func (a AuthToken) GetTokenFor(userID string) (string, error) {
 	token := generateToken(userID)
 	str, err := token.SignedString([]byte(a.secret))
 	if err != nil {
-		log.Println(err)
 		return "", err
 	}
 	return str, nil

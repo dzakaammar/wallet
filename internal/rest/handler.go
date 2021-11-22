@@ -1,60 +1,191 @@
 package rest
 
 import (
-	"context"
+	"encoding/json"
 	"net/http"
 	"wallet/internal"
+	"wallet/internal/account"
+	"wallet/internal/transaction"
+	"wallet/internal/user"
 
 	"github.com/gorilla/mux"
 )
 
-type AccountService interface {
-	GetBalance(ctx context.Context, userID string) (balance int64, err error)
-	TopUp(ctx context.Context, userID string, amount string) error
-}
-
-type UserService interface {
-	Register(ctx context.Context, username string) (id string, err error)
-}
-
-type TransactionService interface {
-	Transfer(ctx context.Context, param internal.TransferRequest) error
-	GetTopTransactionsPerUser(ctx context.Context, userID string) ([]*internal.TransactionPerUserResponse, error)
-	GetTopUserTransactions(ctx context.Context) ([]*internal.UserTransactionsResponse, error)
-}
-
 type Handler struct {
-	accountSvc AccountService
-	userSvc    UserService
-	trxSvc     TransactionService
+	accountSvc account.Service
+	userSvc    user.Service
+	trxSvc     transaction.Service
+	auth       *internal.AuthToken
 }
 
-func NewHandler(accountSvc AccountService, userSvc UserService, trxSvc TransactionService) *Handler {
+func NewHandler(accountSvc account.Service, userSvc user.Service, trxSvc transaction.Service, authToken *internal.AuthToken) *Handler {
 	return &Handler{
 		accountSvc: accountSvc,
 		userSvc:    userSvc,
 		trxSvc:     trxSvc,
+		auth:       authToken,
 	}
 }
 
-func (h *Handler) Register(auth *internal.AuthToken, r *mux.Router) {
-	protect := authMiddleware(auth)
-	r.HandleFunc("/balance_read", protect(h.readBalance)).Methods(http.MethodGet)
-	r.HandleFunc("/transfer", protect(h.transfer)).Methods(http.MethodPost)
+func (h *Handler) Register(r *mux.Router) {
+	withToken := authMiddleware(h.auth)
+	r.HandleFunc("/balance_read", withToken(h.readBalance)).Methods(http.MethodGet)
+	r.HandleFunc("/transfer", withToken(h.transfer)).Methods(http.MethodPost)
 	r.HandleFunc("/create_user", h.createUser).Methods(http.MethodPost)
-	r.HandleFunc("/top_transactions_per_user", protect(h.topTrxOfUser)).Methods(http.MethodGet)
-	r.HandleFunc("/top_users", protect(h.topUserTrxs)).Methods(http.MethodGet)
-	r.HandleFunc("/balance_topup", protect(h.balanceTopUp)).Methods(http.MethodPost)
+	r.HandleFunc("/top_transactions_per_user", withToken(h.getTopTrxOfUser)).Methods(http.MethodGet)
+	r.HandleFunc("/top_users", withToken(h.getTopUserTrxs)).Methods(http.MethodGet)
+	r.HandleFunc("/balance_topup", withToken(h.balanceTopUp)).Methods(http.MethodPost)
 }
 
-func (h *Handler) readBalance(w http.ResponseWriter, r *http.Request) {}
+func (h *Handler) readBalance(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, err := getUserIDInCtx(ctx)
+	if err != nil {
+		mapInternalErr(w, err)
+		return
+	}
 
-func (h *Handler) transfer(w http.ResponseWriter, r *http.Request) {}
+	balance, err := h.accountSvc.GetUserBalance(ctx, userID)
+	if err != nil {
+		mapInternalErr(w, err)
+		return
+	}
 
-func (h *Handler) createUser(w http.ResponseWriter, r *http.Request) {}
+	writeJSONResponse(w, http.StatusOK, struct {
+		Balance int `json:"balance"`
+	}{
+		Balance: balance,
+	})
+}
 
-func (h *Handler) topTrxOfUser(w http.ResponseWriter, r *http.Request) {}
+func (h *Handler) transfer(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, err := getUserIDInCtx(ctx)
+	if err != nil {
+		mapInternalErr(w, err)
+		return
+	}
 
-func (h *Handler) topUserTrxs(w http.ResponseWriter, r *http.Request) {}
+	var reqBody struct {
+		ToUsername string `json:"to_username"`
+		Amount     int    `json:"amount"`
+	}
 
-func (h *Handler) balanceTopUp(w http.ResponseWriter, r *http.Request) {}
+	err = json.NewDecoder(r.Body).Decode(&reqBody)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = h.accountSvc.P2PTransfer(ctx, internal.P2PTransferRequest{
+		InitiatorUserID: userID,
+		ToUsername:      reqBody.ToUsername,
+		Amount:          reqBody.Amount,
+	})
+	if err != nil {
+		mapInternalErr(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) createUser(w http.ResponseWriter, r *http.Request) {
+	var reqBody struct {
+		Username string `json:"username"`
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&reqBody)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	userID, err := h.userSvc.Register(r.Context(), reqBody.Username)
+	if err != nil {
+		mapInternalErr(w, err)
+		return
+	}
+
+	token, err := h.auth.GetTokenFor(userID)
+	if err != nil {
+		mapInternalErr(w, err)
+		return
+	}
+
+	writeJSONResponse(w, http.StatusCreated, struct {
+		Token string `json:"token"`
+	}{
+		Token: token,
+	})
+}
+
+func (h *Handler) getTopTrxOfUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, err := getUserIDInCtx(ctx)
+	if err != nil {
+		mapInternalErr(w, err)
+		return
+	}
+
+	res, err := h.trxSvc.GetUserTopTransactions(ctx, userID)
+	if err != nil {
+		mapInternalErr(w, err)
+		return
+	}
+
+	writeJSONResponse(w, http.StatusOK, res)
+}
+
+func (h *Handler) getTopUserTrxs(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	_, err := getUserIDInCtx(ctx)
+	if err != nil {
+		mapInternalErr(w, err)
+		return
+	}
+
+	res, err := h.trxSvc.GetTopUserTransactions(ctx)
+	if err != nil {
+		mapInternalErr(w, err)
+		return
+	}
+
+	writeJSONResponse(w, http.StatusOK, res)
+}
+
+func (h *Handler) balanceTopUp(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, err := getUserIDInCtx(ctx)
+	if err != nil {
+		mapInternalErr(w, err)
+		return
+	}
+
+	var reqBody struct {
+		Amount int `json:"amount"`
+	}
+
+	err = json.NewDecoder(r.Body).Decode(&reqBody)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = h.accountSvc.TopUp(ctx, internal.TopUpRequest{
+		UserID: userID,
+		Amount: reqBody.Amount,
+	})
+	if err != nil {
+		mapInternalErr(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func writeJSONResponse(w http.ResponseWriter, statusCode int, i interface{}) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(statusCode)
+	_ = json.NewEncoder(w).Encode(i)
+}

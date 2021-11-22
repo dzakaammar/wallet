@@ -3,7 +3,7 @@ package internal
 import (
 	"context"
 
-	validation "github.com/go-ozzo/ozzo-validation/v4"
+	uuid "github.com/satori/go.uuid"
 )
 
 type User struct {
@@ -11,14 +11,23 @@ type User struct {
 	Username string
 }
 
-func (u User) Validate() error {
-	return validation.ValidateStruct(&u,
-		validation.Field(&u.ID, validation.Required),
-		validation.Field(&u.Username, validation.Required),
-	)
+func NewUser(username string) (*User, error) {
+	if username == "" {
+		return nil, WrapErr(ErrInvalidParameter, "invalid username")
+	}
+
+	return &User{
+		ID:       uuid.NewV4().String(),
+		Username: username,
+	}, nil
 }
 
 type UserRepository interface {
-	Store(ctx context.Context, user *User) error
-	GetByUsername(ctx context.Context, username string) (*User, error)
+	Store(ctx context.Context, user User) error
+	FindByUsername(ctx context.Context, username string) (*User, error)
+	FindByID(ctx context.Context, id string) (*User, error)
+}
+
+type UserEvent struct {
+	UserID string
 }
