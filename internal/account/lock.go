@@ -12,13 +12,13 @@ import (
 
 type lock struct {
 	lockData map[string]*semaphore.Weighted
-	mx       *sync.Mutex
+	mx       *sync.RWMutex
 }
 
 func newLock() *lock {
 	return &lock{
 		lockData: make(map[string]*semaphore.Weighted),
-		mx:       new(sync.Mutex),
+		mx:       new(sync.RWMutex),
 	}
 }
 
@@ -72,5 +72,7 @@ func (l *lock) getSemphore(userID string) *semaphore.Weighted {
 	}
 	l.mx.Unlock()
 
+	l.mx.RLock()
+	defer l.mx.RUnlock()
 	return l.lockData[userID]
 }

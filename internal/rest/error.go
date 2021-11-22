@@ -12,14 +12,12 @@ func mapInternalErr(w http.ResponseWriter, err error) {
 		w.WriteHeader(http.StatusNotFound)
 	case errors.Is(err, internal.ErrDataAlreadyExists):
 		w.WriteHeader(http.StatusConflict)
-	case errors.Is(err, internal.ErrDataNotFound):
-		w.WriteHeader(http.StatusConflict)
 	case errors.Is(err, internal.ErrInvalidParameter):
 		w.WriteHeader(http.StatusBadRequest)
 	case errors.Is(err, internal.ErrUserTransactionBusy):
 		w.WriteHeader(http.StatusLocked)
 	case errors.Is(err, internal.ErrInsufficientBalance):
-		w.WriteHeader(http.StatusExpectationFailed)
+		w.WriteHeader(http.StatusBadRequest)
 	default:
 		w.WriteHeader(http.StatusInternalServerError)
 	}

@@ -1,4 +1,4 @@
-package rest
+package rest_test
 
 import (
 	"net/http"
@@ -6,6 +6,7 @@ import (
 	"wallet/internal"
 	"wallet/internal/account"
 	"wallet/internal/inmemory"
+	"wallet/internal/rest"
 	"wallet/internal/transaction"
 	"wallet/internal/user"
 
@@ -31,7 +32,7 @@ func InitHandler() {
 	accountSvc := account.NewService(accountRepo, userRepo, account.NewEventHandler(trxSvc))
 	userSvc := user.NewService(userRepo, user.NewEventHandler(accountSvc))
 
-	hd := NewHandler(accountSvc, userSvc, trxSvc, internal.NewAuthToken("test"))
+	hd := rest.NewHandler(accountSvc, userSvc, trxSvc, internal.NewAuthToken("test"))
 	r := mux.NewRouter()
 	hd.Register(r)
 
