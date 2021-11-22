@@ -23,6 +23,7 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
+	// pass all the env configs through flags, just for the sake of simplicity
 	rootCmd.PersistentFlags().IntP("port", "p", 8080, "http server port")
 	rootCmd.PersistentFlags().StringP("secret", "s", "secret", "token secret")
 }

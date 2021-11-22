@@ -1,0 +1,19 @@
+# wallet
+Simple wallet implementation in Go
+
+# Commands
+
+Run the test:
+```
+go test ./... -race -cover
+```
+
+Run the app with default config:
+```
+go run main.go
+```
+
+or you can specify the port and the JWT secret
+```
+go run main.go -p 8080 -s "secret"
+```
