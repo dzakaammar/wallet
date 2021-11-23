@@ -29,10 +29,12 @@ func NewAccountRepository() *AccountRepository {
 func (a *AccountRepository) Store(ctx context.Context, account internal.Account) error {
 	a.lock.RLock()
 	if _, ok := a.indexByUserID[account.UserID]; ok {
+		a.lock.RUnlock()
 		return internal.WrapErr(internal.ErrDataAlreadyExists, "user account already exists")
 	}
 
 	if _, ok := a.data[account.ID]; ok {
+		a.lock.RUnlock()
 		return internal.WrapErr(internal.ErrDataAlreadyExists, "duplicate account id")
 	}
 	a.lock.RUnlock()
