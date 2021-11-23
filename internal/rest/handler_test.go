@@ -315,7 +315,7 @@ var _ = Describe("transfer", func() {
 				_ = json.NewDecoder(resp.Body).Decode(&respBody)
 
 				Expect(respBody).ToNot(BeNil())
-				Expect(len(respBody)).To(Equal(1))
+				Expect(respBody).To(HaveLen(1))
 				Expect(respBody[0].Username).To(Equal("alice"))
 				Expect(respBody[0].Amount).To(Equal(-100))
 			})
