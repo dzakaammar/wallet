@@ -7,7 +7,7 @@ import (
 )
 
 type EventHandler interface {
-	TransferWasSucceded(internal.TransferEvent)
+	TransferWasSucceed(internal.TransferEvent)
 }
 
 type Service interface {
@@ -116,7 +116,7 @@ func (s *service) P2PTransfer(ctx context.Context, req internal.P2PTransferReque
 		return err
 	}
 
-	s.eventHandler.TransferWasSucceded(internal.TransferEvent{
+	s.eventHandler.TransferWasSucceed(internal.TransferEvent{
 		DebitUserID:  debiturAccount.UserID,
 		CreditUserID: crediturAccount.UserID,
 		Amount:       req.Amount,
@@ -135,6 +135,6 @@ func NewEventHandler(trxSvc transaction.Service) EventHandler {
 	}
 }
 
-func (e *eventHandler) TransferWasSucceded(event internal.TransferEvent) {
+func (e *eventHandler) TransferWasSucceed(event internal.TransferEvent) {
 	e.trxSvc.StoreTransaction(context.Background(), event)
 }
