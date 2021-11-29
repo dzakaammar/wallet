@@ -1,4 +1,4 @@
-package account
+package inmemory
 
 import (
 	"context"
@@ -10,19 +10,19 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-type lock struct {
+type AccountLock struct {
 	lockData map[string]*semaphore.Weighted
 	mx       *sync.RWMutex
 }
 
-func newLock() *lock {
-	return &lock{
+func NewAccountLock() *AccountLock {
+	return &AccountLock{
 		lockData: make(map[string]*semaphore.Weighted),
 		mx:       new(sync.RWMutex),
 	}
 }
 
-func (l *lock) AcquireLock(ctx context.Context, userID string) (func(), error) {
+func (l *AccountLock) AcquireLock(ctx context.Context, userID string) (func(), error) {
 	sem := l.getSemphore(userID)
 	err := sem.Acquire(ctx, 1)
 	if err != nil {
@@ -32,7 +32,7 @@ func (l *lock) AcquireLock(ctx context.Context, userID string) (func(), error) {
 	return func() { sem.Release(1) }, nil
 }
 
-func (l *lock) AcquireTransferLock(ctx context.Context, debiturUserID, crediturUserID string) (func(), error) {
+func (l *AccountLock) AcquireTransferLock(ctx context.Context, debiturUserID, crediturUserID string) (func(), error) {
 	wg := new(errgroup.Group)
 
 	var debiturReleaseFn, crediturReleaseFn func()
@@ -65,7 +65,7 @@ func (l *lock) AcquireTransferLock(ctx context.Context, debiturUserID, crediturU
 	}, nil
 }
 
-func (l *lock) getSemphore(userID string) *semaphore.Weighted {
+func (l *AccountLock) getSemphore(userID string) *semaphore.Weighted {
 	l.mx.Lock()
 	if _, ok := l.lockData[userID]; !ok {
 		l.lockData[userID] = semaphore.NewWeighted(1)

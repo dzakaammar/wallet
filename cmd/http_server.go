@@ -44,9 +44,11 @@ func runHTTPServer(cmd *cobra.Command, _ []string) error {
 	accountRepo := inmemory.NewAccountRepository()
 	trxRepo := inmemory.NewTransactionRepository()
 
+	accountLocker := inmemory.NewAccountLock()
+
 	// service
 	trxSvc := transaction.NewService(trxRepo, userRepo)
-	accountSvc := account.NewService(accountRepo, userRepo, account.NewEventHandler(trxSvc))
+	accountSvc := account.NewService(accountRepo, userRepo, account.NewEventHandler(trxSvc), accountLocker)
 	userSvc := user.NewService(userRepo, user.NewEventHandler(accountSvc))
 
 	// http handler

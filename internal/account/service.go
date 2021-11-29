@@ -10,6 +10,11 @@ type EventHandler interface {
 	TransferWasSucceed(internal.TransferEvent)
 }
 
+type Locker interface {
+	AcquireLock(ctx context.Context, userID string) (func(), error)
+	AcquireTransferLock(ctx context.Context, debiturUserID, crediturUserID string) (func(), error)
+}
+
 type Service interface {
 	P2PTransfer(ctx context.Context, param internal.P2PTransferRequest) error
 	TopUp(ctx context.Context, param internal.TopUpRequest) error
@@ -21,15 +26,20 @@ type service struct {
 	accountRepo  internal.AccountRepository
 	userRepo     internal.UserRepository
 	eventHandler EventHandler
-	locker       *lock
+	locker       Locker
 }
 
-func NewService(accountRepo internal.AccountRepository, userRepo internal.UserRepository, eventHandler EventHandler) Service {
+func NewService(
+	accountRepo internal.AccountRepository,
+	userRepo internal.UserRepository,
+	eventHandler EventHandler,
+	locker Locker,
+) Service {
 	return &service{
 		accountRepo:  accountRepo,
 		userRepo:     userRepo,
 		eventHandler: eventHandler,
-		locker:       newLock(),
+		locker:       locker,
 	}
 }
 
