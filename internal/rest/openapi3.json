@@ -1,0 +1,1 @@
+{"components":{},"info":{"contact":{"url":"https://github.com/dzakaammar/wallet"},"description":"REST APIs used for interacting with the Simple Walleto Service","license":{"name":"MIT","url":"https://opensource.org/licenses/MIT"},"title":"Simple Wallet","version":"0.0.0"},"openapi":"3.0.0","paths":null,"servers":[{"description":"Local development","url":"http://127.0.0.1:8080"}]}

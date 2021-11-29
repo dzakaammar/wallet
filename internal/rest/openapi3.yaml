@@ -1,0 +1,19 @@
+extensionprops: {}
+openapi: 3.0.0
+info:
+  extensionprops: {}
+  title: Simple Wallet
+  description: REST APIs used for interacting with the Simple Walleto Service
+  contact:
+    extensionprops: {}
+    url: https://github.com/dzakaammar/wallet
+  license:
+    extensionprops: {}
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  version: 0.0.0
+paths: {}
+servers:
+  - extensionprops: {}
+    url: http://127.0.0.1:8080
+    description: Local development
