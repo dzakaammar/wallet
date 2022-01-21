@@ -1,5 +1,79 @@
 extensionprops: {}
 openapi: 3.0.0
+components:
+  extensionprops: {}
+  requestBodies:
+    CreateUserRequest:
+      ref: ""
+      value:
+        extensionprops: {}
+        description: Request used for registering a user
+        required: true
+        content:
+          application/json:
+            extensionprops: {}
+            schema:
+              ref: ""
+              value:
+                extensionprops: {}
+                properties:
+                  username:
+                    ref: ""
+                    value:
+                      extensionprops: {}
+                      type: string
+                      minLength: 1
+    TopupRequest:
+      ref: ""
+      value:
+        extensionprops: {}
+        description: Request used for topup money
+        required: true
+        content:
+          application/json:
+            extensionprops: {}
+            schema:
+              ref: ""
+              value:
+                extensionprops: {}
+                properties:
+                  amount:
+                    ref: ""
+                    value:
+                      extensionprops: {}
+                      type: integer
+                      format: int32
+                      minimum: 1
+  responses:
+    CreateUserResponse:
+      ref: ""
+      value:
+        extensionprops: {}
+        description: create user success response
+        content:
+          application/json:
+            extensionprops: {}
+            schema:
+              ref: ""
+              value:
+                extensionprops: {}
+                properties:
+                  token:
+                    ref: ""
+                    value:
+                      extensionprops: {}
+                      type: string
+    EmptyResponse:
+      ref: ""
+      value:
+        extensionprops: {}
+  securitySchemes:
+    bearerAuth:
+      ref: ""
+      value:
+        extensionprops: {}
+        type: http
+        scheme: basic
 info:
   extensionprops: {}
   title: Simple Wallet
@@ -12,8 +86,44 @@ info:
     name: MIT
     url: https://opensource.org/licenses/MIT
   version: 0.0.0
-paths: {}
+paths:
+  /balance_topup:
+    extensionprops: {}
+    post:
+      extensionprops: {}
+      operationId: BalanceTopup
+      requestBody:
+        ref: '#/components/requestBodies/TopupRequest'
+        value: null
+      responses:
+        "200":
+          ref: '#/components/responses/EmptyResponse'
+          value: null
+        "401":
+          ref: ""
+          value:
+            extensionprops: {}
+            description: username already exists
+      security:
+      - bearerAuth: []
+  /create_user:
+    extensionprops: {}
+    post:
+      extensionprops: {}
+      operationId: CreateUser
+      requestBody:
+        ref: '#/components/requestBodies/CreateUserRequest'
+        value: null
+      responses:
+        "200":
+          ref: '#/components/responses/CreateUserResponse'
+          value: null
+        "401":
+          ref: ""
+          value:
+            extensionprops: {}
+            description: username already exists
 servers:
-  - extensionprops: {}
-    url: http://127.0.0.1:8080
-    description: Local development
+- extensionprops: {}
+  url: http://127.0.0.1:8080
+  description: Local development

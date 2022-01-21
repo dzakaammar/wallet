@@ -35,6 +35,81 @@ func NewOpenAPI3() openapi3.T {
 		},
 	}
 
+	swagger.Components.SecuritySchemes = openapi3.SecuritySchemes{
+		"bearerAuth": &openapi3.SecuritySchemeRef{
+			Value: openapi3.NewSecurityScheme().WithType("http").WithScheme("basic"),
+		},
+	}
+
+	swagger.Components.RequestBodies = openapi3.RequestBodies{
+		"CreateUserRequest": &openapi3.RequestBodyRef{
+			Value: openapi3.NewRequestBody().
+				WithDescription("Request used for registering a user").
+				WithRequired(true).
+				WithJSONSchema(openapi3.NewSchema().
+					WithProperty("username", openapi3.NewStringSchema().
+						WithMinLength(1))),
+		},
+		"TopupRequest": &openapi3.RequestBodyRef{
+			Value: openapi3.NewRequestBody().
+				WithDescription("Request used for topup money").
+				WithRequired(true).
+				WithJSONSchema(openapi3.NewSchema().
+					WithProperty("amount", openapi3.NewInt32Schema().
+						WithMin(1))),
+		},
+	}
+
+	swagger.Components.Responses = openapi3.Responses{
+		"EmptyResponse": &openapi3.ResponseRef{
+			Value: openapi3.NewResponse(),
+		},
+		"CreateUserResponse": &openapi3.ResponseRef{
+			Value: openapi3.NewResponse().WithDescription("create user success response").
+				WithJSONSchema(openapi3.NewSchema().WithProperty("token", openapi3.NewStringSchema())),
+		},
+	}
+
+	swagger.Paths = openapi3.Paths{
+		"/create_user": &openapi3.PathItem{
+			Post: &openapi3.Operation{
+				OperationID: "CreateUser",
+				RequestBody: &openapi3.RequestBodyRef{
+					Ref: "#/components/requestBodies/CreateUserRequest",
+				},
+				Responses: openapi3.Responses{
+					"200": &openapi3.ResponseRef{
+						Ref: "#/components/responses/CreateUserResponse",
+					},
+					"401": &openapi3.ResponseRef{
+						Value: openapi3.NewResponse().WithDescription("username already exists"),
+					},
+				},
+			},
+		},
+		"/balance_topup": &openapi3.PathItem{
+			Post: &openapi3.Operation{
+				OperationID: "BalanceTopup",
+				Security: &openapi3.SecurityRequirements{
+					{
+						"bearerAuth": []string{},
+					},
+				},
+				RequestBody: &openapi3.RequestBodyRef{
+					Ref: "#/components/requestBodies/TopupRequest",
+				},
+				Responses: openapi3.Responses{
+					"200": &openapi3.ResponseRef{
+						Ref: "#/components/responses/EmptyResponse",
+					},
+					"401": &openapi3.ResponseRef{
+						Value: openapi3.NewResponse().WithDescription("username already exists"),
+					},
+				},
+			},
+		},
+	}
+
 	return swagger
 }
 
