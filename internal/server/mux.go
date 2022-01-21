@@ -17,7 +17,7 @@ type HTTPServer struct {
 	http.Server
 }
 
-func NewMuxHTTPServer(h *rest.Handler, port int) *HTTPServer {
+func NewMuxHTTPServer(h *rest.Handler) *HTTPServer {
 	r := mux.NewRouter()
 
 	h.Register(r)
@@ -28,18 +28,18 @@ func NewMuxHTTPServer(h *rest.Handler, port int) *HTTPServer {
 
 	return &HTTPServer{
 		Server: http.Server{
-			Addr:    fmt.Sprintf(":%d", port),
 			Handler: r,
 		},
 	}
 }
 
-func (h *HTTPServer) Start() error {
+func (h *HTTPServer) Start(port int) error {
 	fmt.Printf("HTTP server is starting at port %s\n", h.Addr)
+	h.Addr = fmt.Sprintf(":%d", port)
 	return h.ListenAndServe()
 }
 
-func (h *HTTPServer) Stop(ctx context.Context) {
+func (h *HTTPServer) Stop(ctx context.Context) error {
 	fmt.Println("HTTP server is shutting down...")
-	h.Shutdown(ctx)
+	return h.Shutdown(ctx)
 }

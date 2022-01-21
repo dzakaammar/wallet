@@ -55,24 +55,31 @@ func runHTTPServer(cmd *cobra.Command, _ []string) error {
 	handler := rest.NewHandler(accountSvc, userSvc, trxSvc, internal.NewAuthToken(secret))
 
 	// http server
-	srv := server.NewMuxHTTPServer(handler, port)
+	srv := server.NewMuxHTTPServer(handler)
 
+	errChan := make(chan error, 2)
 	go func() {
 		//- start service
-		if err := srv.Start(); err != nil {
-			fmt.Println(err)
+		if err := srv.Start(port); err != nil {
+			errChan <- err
 		}
 	}()
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	<-sigCh
+	go func() {
+		<-sigCh
+		errChan <- fmt.Errorf("getting interruption")
+	}()
 
+	fmt.Println("error: ", <-errChan)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	srv.Stop(ctx)
+	if err := srv.Stop(ctx); err != nil {
+		return err
+	}
 
 	return nil
 }
