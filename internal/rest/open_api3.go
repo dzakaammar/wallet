@@ -9,8 +9,6 @@ import (
 )
 
 //go:generate go run ../../main.go openapi-gen --path .
-//go:generate oapi-codegen -package openapi3 -generate types  -o ../../pkg/openapi3/task_types.gen.go openapi3.yaml
-//go:generate oapi-codegen -package openapi3 -generate client -o ../../pkg/openapi3/client.gen.go     openapi3.yaml
 
 func NewOpenAPI3() openapi3.T {
 	swagger := openapi3.T{
